@@ -10,9 +10,9 @@ from client_lib.config import HOSTED_KAFKA
 
 # Config ##########################################################################################################
 
-TEAM_NAME = "CHANGE ME"
-HEX_CODE = "CHANGE ME"
-QUIZ_TOPIC = "CHANGE ME"
+TEAM_NAME = "1 til 5"
+HEX_CODE = "003D3D"
+QUIZ_TOPIC = "leesah-quiz-abakus-1"
 CONSUMER_GROUP_ID = f"cg-leesah-team-${TEAM_NAME}-1"
 
 
@@ -24,21 +24,45 @@ class MyParticipant(quiz_rapid.QuizParticipant):
         super().__init__(TEAM_NAME)
 
     def handle_question(self, question: quiz_rapid.Question):
-        raise NotImplementedError("Her må du implementere håndtering av spørsmål 😎")
-        # if question.category == "team-registration":
-        #     self.handle_register_team(question)
-
-    def handle_assessment(self, assessment: quiz_rapid.Assessment):
-        pass
+        #raise NotImplementedError("Her må du implementere håndtering av spørsmål 😎")
+        if question.category == "team-registration":
+            self.handle_register_team(question)
+        if question.category == "ping-pong":
+            self.handle_ping_pong(question)
+        if question.category == "arithmetic":
+            self.handle_arithmetic(question)
 
     # ---------------------------------------------------------------------------- Question handlers
 
-    # def handle_register_team(self, question: quiz_rapid.Question):
-    #     self.publish_answer(
-    #         question_id=question.messageId,
-    #         category=question.category,
-    #         answer=HEX_CODE
-    #     )
+    def handle_register_team(self, question: quiz_rapid.Question):
+        self.publish_answer(
+            question_id=question.messageId,
+            category=question.category,
+            answer=HEX_CODE
+        )
+    
+    def handle_ping_pong(self, question: quiz_rapid.Question):
+        self.publish_answer(
+            question_id=question.messageId,
+            category=question.category,
+            answer="pong"
+        )
+
+    def handle_arithmetic(self, question: quiz_rapid.Question):
+        parts = question.question.split(" ")[:3]
+        if parts[1] == "+":
+            answer = int(parts[0]) + int(parts[2])
+        if parts[1] == "-":
+            answer = int(parts[0]) - int(parts[2])
+        if parts[1] == "/":
+            answer = int(float(parts[0]) / float(parts[2]))
+        if parts[1] == "*":
+            answer = int(parts[0]) * int(parts[2])
+        self.publish_answer(
+            question_id=question.messageId,
+            category=question.category,
+            answer=answer
+        )
 
 
 def main():
@@ -54,3 +78,12 @@ def main():
         log_ignore_list=[]  # Liste med spørsmålskategorier loggingen skal ignorere
     )
     return MyParticipant(), rapid
+
+def get_chat_gpt_response(question):
+    response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "{question}"}
+    ]
+)
